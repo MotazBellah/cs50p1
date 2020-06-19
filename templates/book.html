@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+{% block title %}Book-info{% endblock %}
+
+{% block head %}
+     {{ super() }}
+{% endblock %}
+
+{% block content %}
+
+    {{ super() }}
+
+
+    <div class="book-info clearfix">
+        <div class="photo">
+            <img src="{{ img_url }}" alt="">
+        </div>
+
+        <div class="info">
+            <h2>{{ book_title }}</h2>
+            <p>{{ book_author }}</p>
+            <p>ISBN: {{ isbn }}, Publication year: {{ year }}</p><br>
+        {% if description %}
+            <p>{{ description.replace(']]>','') }}</p><br>
+        {% else %}
+            <h4>There is no description available</h4><br>
+        {% endif %}
+            <h4>Rating</h4><br>
+            <p>The book rating on goodreads is <strong>{{ rating }}</strong> - {{ count }} ratings</p>
+            <p>The total rating is <strong class="total-rate">{{ total_rate }}</strong></p><br>
+        {% if login_session %}
+            <h5>Rate The Book</h5>
+            <div class="rate">
+                <a><span title="1" class="fa fa-star"></span></a>
+                <a><span title="2" class="fa fa-star"></span></a>
+                <a><span title="3" class="fa fa-star"></span></a>
+                <a><span title="4" class="fa fa-star"></span></a>
+                <a><span title="5" class="fa fa-star"></span></a>
+            </div><br><br>
+        {% endif %}
+
+        <div class="comments">
+            <h4>Comments</h4><br>
+            <div class="comment_area">
+                {% if comments %}
+                    {% for comment in comments %}
+                        <p><strong>{{ comment.name }}</strong></p>
+                        <p>{{ comment.coment }}</p><br>
+                    {% endfor %}
+                {% else %}
+                    <h5 id="no_comments">There are no comments yet!</h5>
+                {% endif %}
+            </div>
+            <div class="user_commenting">
+                {% if login_session %}
+                    <form  id="submit_comment">
+                        <input id='input_text' type="text" class="form-control" name="name" placeholder="Write a comment">
+                        <input type="submit" class="btn btn-primary mt-2 mb-4" value="post">
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        </div>
+
+    </div>
+
+
+
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                // Handle the user rating and total ratings
+                // Get the parent div that contain the stars
+                const div = document.getElementsByClassName('rate');
+                const rating_area = document.getElementsByClassName('total-rate');
+                // Check if the user has a rating values
+                const user_rating = {{ user_rate }}
+                if (user_rating) {
+
+                    setRating(user_rating);
+
+                }
+                    // Check if the user click on one of the stars
+                    div[0].addEventListener('click', function(e) {
+                        e.preventDefault()
+                        // Get the rating and the book_id
+                        var rating = parseInt(e.target.title)
+                        var book_id = {{ book_id }}
+                        // Send ajax request to the backend server with rating and book_id values
+                        // and make the starts bright for the user
+                        $.ajax({
+                            type: "POST",
+                            url: '/book-rate',
+                            data: {
+                                rating: rating,
+                                book_id: book_id
+                            },
+                            success: function(response)
+                                {
+                                    // check if the user already gave a rating
+                                    if ('error' in response) {
+                                        alert(response['error'])
+
+                                    } else {
+
+                                        setRating(response['rate'])
+                                        // Change the total rating
+                                        rating_area[0].textContent = response['total_rate'];
+
+                                    }
+                                    //  Make sure the program out from the function
+                                    return false
+                                }
+                          });
+                          return false
+
+                })
+
+                // function to Make the start bright according to the rating
+                function setRating(user_rating) {
+                    // Loop through the children of the div to make the stars bright
+                    for (let i = 0; i < div[0].children.length; i++) {
+                        if (i < user_rating) {
+                            div[0].children[i].firstChild.className += ' checked';
+                        }
+                    }
+                }
+
+                // Handle the user comments
+                const coment_div = document.getElementsByClassName('comment_area')[0];
+                let input_value = document.getElementById('input_text');
+
+                $("#submit_comment").submit(function(e) {
+                    console.log(input_value.value);
+                    // stop form from submitting normally
+                    e.preventDefault();
+
+                    $.ajax({
+                        type: "POST",
+                        url: '/comment-book',
+                        data: {
+                            value: input_value.value,
+                            book_id: {{ book_id }}
+                        },
+                        success: function(response)
+                            {
+                                if ('error' in response) {
+                                    alert(response['error'])
+
+                                } else {
+
+                                    //  Create a strong element that contain the user name
+                                    var strong = document.createElement("strong");
+                                    strong.innerHTML = response['user']
+                                    // Create a prograph tag
+                                    var p = document.createElement("p");
+                                    p.style.color = "gray";
+                                    p.appendChild(strong)
+                                    //  Create prograph tage, hold the comment
+                                    var p2 = document.createElement("p");
+                                    p2.innerHTML = response['comment']
+                                    // create a line breaker
+                                    var br = document.createElement("br");
+
+                                    coment_div.appendChild(p)
+                                    coment_div.appendChild(p2)
+                                    coment_div.appendChild(br)
+                                    // In case the comment will be the first comment, make sure to hide the header
+                                    // If there are comments, so the id `no_comments` will not be exist
+                                    try {
+                                        document.getElementById('no_comments').style.display = 'none';
+                                    } catch (e) {
+                                        // pass
+                                    }
+
+
+
+                                }
+                                // Reset the input
+                                input_value.value = ''
+
+                                //  Make sure the program out from the function
+                                return false
+                            }
+                      });
+
+                });
+
+            });
+
+
+        </script>
+
+{% endblock %}

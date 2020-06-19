@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+{% block title %}Books{% endblock %}
+
+{% block head %}
+     {{ super() }}
+{% endblock %}
+
+{% block content %}
+
+    {{ super() }}
+
+    {% if books %}
+
+    {% if login_session %}
+        <div class="search mb-3 mr-3">
+            <form>
+                <input id="searchInput" type="text" name="name" placeholder="Search for books by title, author or ISBN number">
+            </form>
+        </div>
+    {% endif %}
+
+        <div id="search-area"></div>
+
+        <div id="books">
+            {% for book in books %}
+
+
+                    <div class="book-body m-3">
+                        <a href="{{url_for('book', book_id = book.id)}}">
+                            <img class="mb-1" src="http://covers.openlibrary.org/b/isbn/{{ book.isbn }}-M.jpg" alt="">
+                            <h4>{{ book.title }}</h4>
+                            <p>{{ book.author }}</p>
+                            <p>Published at {{ book.year }}</p></a>
+                    </div>
+
+
+            {% endfor %}
+        </div>
+
+
+    {% else %}
+
+
+            <h4>There are no books available</h4>
+
+    {% endif %}
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            var search_input = document.querySelector('#searchInput')
+            var search_area = document.querySelector('#search-area')
+            var display_books = document.querySelector('#books')
+            //  Reset the value in case of reload / back
+            search_input.value = ''
+            // search_input.addEventListener('change', function() {
+            //     alert('Changed')
+            // })
+
+            $( "#searchInput" ).keyup(function() {
+              console.log(search_input.value);
+              if (search_input.value) {
+
+                  $.ajax({
+                      type: "POST",
+                      url: '/search-books',
+                      data: {
+                          name: search_input.value,
+                      },
+                      success: function(response)
+                          {
+                             console.log(response['books']);
+                            if ('error' in response) {
+                                search_area.innerHTML = ''
+                                display_books.style.display = 'block';
+
+                            } else {
+
+                                if (response['books'].length > 0) {
+                                    display_books.style.display = 'none';
+                                    search_area.innerHTML = ''
+
+                                    for (let i = 0; i < response['books'].length; i++) {
+                                        let book = response['books'][i]
+
+                                        var div = document.createElement("div");
+                                        div.setAttribute("class", "book-body m-3");
+                                        var anchor = document.createElement("a");
+                                        anchor.setAttribute("href", "/"+book.id);
+                                        var img = document.createElement("img");
+                                        img.setAttribute("class", "mb-1");
+                                        img.setAttribute("src", "http://covers.openlibrary.org/b/isbn/"+book.isbn+"-M.jpg");
+                                        var h = document.createElement("h4");
+                                        h.innerHTML = book.title
+                                        var p = document.createElement("p");
+                                        p.innerHTML = book.author
+                                        var p2 = document.createElement("p");
+                                        p2.innerHTML = "Published at " + book.year
+
+                                       anchor.appendChild(img)
+                                       anchor.appendChild(h)
+                                       anchor.appendChild(p)
+                                       anchor.appendChild(p2)
+                                       div.appendChild(anchor)
+                                       search_area.appendChild(div)
+
+                                    }
+
+                                }
+                                else {
+                                    display_books.style.display = 'block';
+                                }
+                            }
+
+
+                              //  Make sure the program out from the function
+                              return false
+                          }
+                    });
+
+              } else {
+                  display_books.style.display = 'block';
+                  search_area.innerHTML = '';
+
+              }
+            });
+        });
+
+
+    </script>
+
+
+{% endblock %}
